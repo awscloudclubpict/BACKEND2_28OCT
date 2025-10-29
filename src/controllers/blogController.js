@@ -1,4 +1,4 @@
-import Blog from "../models/blog.model.js";
+import Blog from "../models/Blog.js";
 import {blogValidationSchema} from "../validation/blogValidationSchema.js";
 import { uploadToS3, deleteFromS3 } from "../utils/s3.js";
 import multer from "multer";
