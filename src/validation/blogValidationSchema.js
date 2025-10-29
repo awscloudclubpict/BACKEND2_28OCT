@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { z } from "zod";
-
 const urlRegex =
   /^(https?:\/\/)?([\w.-]+)\.([a-z]{2,6})([\/\w .-]*)*\/?$/i;
 
