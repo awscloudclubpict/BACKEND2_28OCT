@@ -1,18 +1,15 @@
-import dotenv from "dotenv";
-
-// Load environment variables at the very top
-dotenv.config();
-
-
-
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
-// import teamMemberRoutes from "./routes/teamMemberRoutes.js";
-// import eventRoutes from "./routes/eventRoutes.js";
+import teamMemberRoutes from "./routes/teamMemberRoutes.js";
+import eventRoutes from "./routes/eventRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 //Commented out old CORS config that allows all origins without credentials
@@ -60,9 +57,9 @@ app.use("/test", (req, res) => {
   res.json({ message: "Test endpoint working!", timestamp: new Date().toISOString() });
 });
 app.use("/auth", authRoutes);
-// app.use("/events", eventRoutes);
+app.use("/events", eventRoutes);
 app.use("/blogs", blogRoutes);
-// app.use("/team-members", teamMemberRoutes);
+app.use("/team-members", teamMemberRoutes);
 
 // Connect to database on startup
 connectToDatabase();

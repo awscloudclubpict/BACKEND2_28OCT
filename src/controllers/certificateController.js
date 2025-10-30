@@ -4,7 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import mongoose from "mongoose";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { uploadToS3 } from "../utils/s3.js";
 import Certificate from "../models/Certificate.js";
 
 dotenv.config();
@@ -15,16 +15,16 @@ let nanoid;
   nanoid = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 8);
 })();
 
-// Validate required AWS envs early (optional but helpful)
-if (!process.env.AWS_S3_BUCKET_NAME) {
-  console.warn("Warning: AWS_S3_BUCKET_NAME is not set in .env — S3 uploads will fail.");
+// Validate required Cloudinary envs early (optional but helpful)
+if (!process.env.CLOUDINARY_CLOUD_NAME) {
+  console.warn("Warning: CLOUDINARY_CLOUD_NAME is not set in .env — Cloudinary uploads will fail.");
 }
-if (!process.env.AWS_REGION) {
-  console.warn("Warning: AWS_REGION not set in .env — set it to your S3 region.");
+if (!process.env.CLOUDINARY_API_KEY) {
+  console.warn("Warning: CLOUDINARY_API_KEY not set in .env — Cloudinary uploads will fail.");
 }
-
-// Initialize S3 client (SDK will pick credentials from env or IAM role)
-const s3 = new S3Client({ region: process.env.AWS_REGION });
+if (!process.env.CLOUDINARY_API_SECRET) {
+  console.warn("Warning: CLOUDINARY_API_SECRET not set in .env — Cloudinary uploads will fail.");
+}
 
 // CREATE CERTIFICATE (with S3 upload)
 export const createCertificate = async (req, res) => {
@@ -126,31 +126,16 @@ export const createCertificate = async (req, res) => {
     const pdfBytes = await pdfDoc.save();
     fs.writeFileSync(filePath, pdfBytes);
 
-    // Ensure bucket env set
-    if (!process.env.AWS_S3_BUCKET_NAME) {
-      return res.status(500).json({ error: "AWS_S3_BUCKET_NAME is not defined in .env" });
-    }
-
-    // Upload to S3
+    // Upload to Cloudinary
     const fileContent = fs.readFileSync(filePath);
-    const s3Key = `certificates/${certificateId}/${fileName}`;
-
-    const s3Params = {
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: s3Key,
-      Body: fileContent,
-      ContentType: "application/pdf",
-    };
 
     try {
-      await s3.send(new PutObjectCommand(s3Params));
+      const cloudinaryUrl = await uploadToS3(fileContent, fileName, "application/pdf", "certificates");
+      s3Url = cloudinaryUrl;
     } catch (uploadErr) {
-      console.error("S3 upload failed:", uploadErr);
-      return res.status(500).json({ error: "Failed to upload PDF to S3", details: uploadErr.message });
+      console.error("Cloudinary upload failed:", uploadErr);
+      return res.status(500).json({ error: "Failed to upload PDF to Cloudinary", details: uploadErr.message });
     }
-
-    // Construct S3 URL
-    const s3Url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
 
     // Delete local temp file
     try {
@@ -171,7 +156,7 @@ export const createCertificate = async (req, res) => {
     });
 
     return res.status(201).json({
-      message: "Certificate created, uploaded to S3 & saved in DB",
+      message: "Certificate created, uploaded to Cloudinary & saved in DB",
       certificate,
     });
   } catch (error) {

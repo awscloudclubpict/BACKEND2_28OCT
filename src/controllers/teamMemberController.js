@@ -1,6 +1,6 @@
 import { createTeamMemberSchema, createTeamMemberWithImageSchema, updateTeamMemberSchema } from "../validation/teamMemberSchemas.js";
 import TeamMember from "../models/TeamMember.js";
-import { uploadToS3 } from "../utils/s3.js";
+import { uploadToS3, deleteFromS3 } from "../utils/s3.js";
 
 class TeamMemberController {
     async createTeamMember(req, res) {
@@ -17,7 +17,8 @@ class TeamMemberController {
             await teamMember.save();
             res.status(201).json({ message: "Team member created successfully", teamMember });
         } catch (error) {
-            res.status(500).json({ error: "Internal server error" });
+            console.error('Error creating team member:', error);
+            res.status(500).json({ er: error });
         }
     }
 
@@ -173,6 +174,16 @@ class TeamMemberController {
             if (!deleted) {
                 return res.status(404).json({ error: "Team member not found" });
             }
+
+            // Delete profile image from Cloudinary if it exists
+            if (deleted.profileImage) {
+                try {
+                    await deleteFromS3(deleted.profileImage);
+                } catch (deleteError) {
+                    console.warn("Failed to delete profile image from Cloudinary:", deleteError.message);
+                }
+            }
+
             res.json({ message: "Team member deleted successfully" });
         } catch (error) {
             res.status(500).json({ error: "Internal server error" });

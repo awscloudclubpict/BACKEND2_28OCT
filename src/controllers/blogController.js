@@ -55,6 +55,7 @@ class BlogController {
                 thumbnail_image_url: imageUrl,
             });
 
+              
             if (!validationResult.success) {
                 return res.status(400).json({
                     error: "Validation failed",
